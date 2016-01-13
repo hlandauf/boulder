@@ -24,12 +24,13 @@ type PolicyAuthorityImpl struct {
 	DB  *PolicyAuthorityDatabaseImpl
 
 	EnforceWhitelist  bool
+	AllowIDN          bool
 	enabledChallenges map[string]bool
 	pseudoRNG         *rand.Rand
 }
 
 // NewPolicyAuthorityImpl constructs a Policy Authority.
-func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist bool, challengeTypes map[string]bool) (*PolicyAuthorityImpl, error) {
+func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist, allowIDN bool, challengeTypes map[string]bool) (*PolicyAuthorityImpl, error) {
 	logger := blog.GetAuditLogger()
 	logger.Notice("Policy Authority Starting")
 
@@ -43,6 +44,7 @@ func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist bool, challengeT
 		log:               logger,
 		DB:                padb,
 		EnforceWhitelist:  enforceWhitelist,
+		AllowIDN:          allowIDN,
 		enabledChallenges: challengeTypes,
 		// We don't need real randomness for this.
 		pseudoRNG: rand.New(rand.NewSource(99)),
@@ -107,7 +109,7 @@ var (
 	errTooFewLabels        = core.MalformedRequestError("DNS name does not have enough labels")
 	errLabelTooShort       = core.MalformedRequestError("DNS label is too short")
 	errLabelTooLong        = core.MalformedRequestError("DNS label is too long")
-	errIDNNotSupported     = core.MalformedRequestError("Internationalized domain names (starting with xn--) not yet supported")
+	errIDNNotAllowed       = core.MalformedRequestError("Internationalized domain names (starting with xn--) not allowed")
 )
 
 // WillingToIssue determines whether the CA is willing to issue for the provided
@@ -173,8 +175,8 @@ func (pa PolicyAuthorityImpl) WillingToIssue(id core.AcmeIdentifier, regID int64
 			return errInvalidDNSCharacter
 		}
 
-		if punycodeRegexp.MatchString(label) {
-			return errIDNNotSupported
+		if !pa.AllowIDN && punycodeRegexp.MatchString(label) {
+			return errIDNNotAllowed
 		}
 	}
 

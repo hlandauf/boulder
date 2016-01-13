@@ -29,7 +29,7 @@ var enabledChallenges = map[string]bool{
 
 func paImpl(t *testing.T) (*PolicyAuthorityImpl, func()) {
 	dbMap, cleanUp := paDBMap(t)
-	pa, err := NewPolicyAuthorityImpl(dbMap, false, enabledChallenges)
+	pa, err := NewPolicyAuthorityImpl(dbMap, false, false /* IDN TODO */, enabledChallenges)
 	if err != nil {
 		cleanUp()
 		t.Fatalf("Couldn't create policy implementation: %s", err)
@@ -66,8 +66,8 @@ func TestWillingToIssue(t *testing.T) {
 		{`www.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz.com`, errLabelTooLong}, // Label too long (>63 characters)
 
 		{`www.-ombo.com`, errInvalidDNSCharacter}, // Label starts with '-'
-		{`www.xn--hmr.net`, errIDNNotSupported},   // Punycode (disallowed for now)
-		{`xn--.net`, errIDNNotSupported},          // No punycode for now.
+		{`www.xn--hmr.net`, errIDNNotAllowed},     // Punycode (disallowed for now)
+		{`xn--.net`, errIDNNotAllowed},            // No punycode for now.
 		{`0`, errTooFewLabels},
 		{`1`, errTooFewLabels},
 		{`*`, errInvalidDNSCharacter},
@@ -221,7 +221,7 @@ func TestChallengesFor(t *testing.T) {
 func TestWillingToIssueWithWhitelist(t *testing.T) {
 	dbMap, cleanUp := paDBMap(t)
 	defer cleanUp()
-	pa, err := NewPolicyAuthorityImpl(dbMap, true, nil)
+	pa, err := NewPolicyAuthorityImpl(dbMap, true, false /* IDN TODO */, nil)
 	test.AssertNotError(t, err, "Couldn't create policy implementation")
 	googID := core.AcmeIdentifier{
 		Type:  core.IdentifierDNS,

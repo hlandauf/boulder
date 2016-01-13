@@ -313,6 +313,7 @@ type CAConfig struct {
 type PAConfig struct {
 	DBConfig
 	EnforcePolicyWhitelist bool
+	AllowIDN               bool
 	Challenges             map[string]bool
 }
 
