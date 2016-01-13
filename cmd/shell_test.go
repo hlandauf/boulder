@@ -10,22 +10,18 @@ import (
 var (
 	validPAConfig = []byte(`{
   "dbConnect": "dummyDBConnect",
-  "enforcePolicyWhitelist": false,
   "challenges": { "http-01": true }
 }`)
 	invalidPAConfig = []byte(`{
   "dbConnect": "dummyDBConnect",
-  "enforcePolicyWhitelist": false,
   "challenges": { "nonsense": true }
 }`)
 	noChallengesPAConfig = []byte(`{
-  "dbConnect": "dummyDBConnect",
-  "enforcePolicyWhitelist": false
+  "dbConnect": "dummyDBConnect"
 }`)
 
 	emptyChallengesPAConfig = []byte(`{
   "dbConnect": "dummyDBConnect",
-  "enforcePolicyWhitelist": false,
   "challenges": {}
 }`)
 )

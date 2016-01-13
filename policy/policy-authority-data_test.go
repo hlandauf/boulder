@@ -35,11 +35,6 @@ func TestLoadAndDumpRules(t *testing.T) {
 				Host: "bad.com",
 			},
 		},
-		Whitelist: []WhitelistRule{
-			WhitelistRule{
-				Host: "good.bad.com",
-			},
-		},
 	}
 	err := p.LoadRules(load)
 	test.AssertNotError(t, err, "Couldn't load rules")
@@ -47,9 +42,7 @@ func TestLoadAndDumpRules(t *testing.T) {
 	dumped, err := p.DumpRules()
 	test.AssertNotError(t, err, "Couldn't dump rules")
 	test.AssertEquals(t, len(dumped.Blacklist), 1)
-	test.AssertEquals(t, len(dumped.Whitelist), 1)
 
-	test.AssertEquals(t, dumped.Whitelist[0], load.Whitelist[0])
 	test.AssertEquals(t, dumped.Blacklist[0], load.Blacklist[0])
 }
 
@@ -63,58 +56,16 @@ func TestBlacklist(t *testing.T) {
 				Host: "bad.com",
 			},
 		},
-		Whitelist: []WhitelistRule{
-			WhitelistRule{
-				Host: "good.bad.com",
-			},
-		},
 	})
 	test.AssertNotError(t, err, "Couldn't load rules")
 
-	err = p.CheckHostLists("bad.com", false)
+	err = p.CheckHostLists("bad.com")
 	test.AssertError(t, err, "Hostname should be blacklisted")
-	err = p.CheckHostLists("still.bad.com", false)
+	err = p.CheckHostLists("still.bad.com")
 	test.AssertError(t, err, "Hostname should be blacklisted")
-	err = p.CheckHostLists("badminton.com", false)
+	err = p.CheckHostLists("badminton.com")
 	test.AssertNotError(t, err, "Hostname shouldn't be blacklisted")
-	// Whitelisted subdomain of blacklisted root should still be blacklsited
-	err = p.CheckHostLists("good.bad.com", true)
-	test.AssertError(t, err, "Blacklist should beat whitelist")
 	// Not blacklisted
-	err = p.CheckHostLists("good.com", false)
+	err = p.CheckHostLists("good.com")
 	test.AssertNotError(t, err, "Hostname shouldn't be blacklisted")
-}
-
-func TestWhitelist(t *testing.T) {
-	p, cleanup := padbImpl(t)
-	defer cleanup()
-
-	err := p.LoadRules(RuleSet{
-		Blacklist: []BlacklistRule{
-			BlacklistRule{
-				Host: "bad.com",
-			},
-		},
-		Whitelist: []WhitelistRule{
-			WhitelistRule{
-				Host: "good.bad.com",
-			},
-			WhitelistRule{
-				Host: "good.com",
-			},
-		},
-	})
-	test.AssertNotError(t, err, "Couldn't load rules")
-
-	err = p.CheckHostLists("bad.com", true)
-	test.AssertError(t, err, "Hostname should be blacklisted")
-	// Whitelisted subdomain of blacklisted root should still be blacklsited
-	err = p.CheckHostLists("good.bad.com", true)
-	test.AssertError(t, err, "Blacklist should beat whitelist")
-	// Non-existent domain should fail
-	err = p.CheckHostLists("not-good.com", true)
-	test.AssertError(t, err, "Hostname isn't on whitelist")
-	// Whitelisted
-	err = p.CheckHostLists("good.com", true)
-	test.AssertNotError(t, err, "Hostname is on whitelist")
 }

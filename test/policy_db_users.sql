@@ -20,7 +20,6 @@
 -- both read and write permission, even though it would be better to give only
 -- read permission to CA and RA.
 GRANT SELECT,INSERT,DELETE ON blacklist TO 'policy'@'localhost';
-GRANT SELECT,INSERT,DELETE ON whitelist TO 'policy'@'localhost';
 
 -- Test setup and teardown
 GRANT ALL PRIVILEGES ON * to 'test_setup'@'localhost';

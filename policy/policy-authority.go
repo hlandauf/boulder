@@ -23,13 +23,12 @@ type PolicyAuthorityImpl struct {
 	log *blog.AuditLogger
 	DB  *PolicyAuthorityDatabaseImpl
 
-	EnforceWhitelist  bool
 	enabledChallenges map[string]bool
 	pseudoRNG         *rand.Rand
 }
 
 // NewPolicyAuthorityImpl constructs a Policy Authority.
-func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist bool, challengeTypes map[string]bool) (*PolicyAuthorityImpl, error) {
+func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, challengeTypes map[string]bool) (*PolicyAuthorityImpl, error) {
 	logger := blog.GetAuditLogger()
 	logger.Notice("Policy Authority Starting")
 
@@ -42,7 +41,6 @@ func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist bool, challengeT
 	pa := PolicyAuthorityImpl{
 		log:               logger,
 		DB:                padb,
-		EnforceWhitelist:  enforceWhitelist,
 		enabledChallenges: challengeTypes,
 		// We don't need real randomness for this.
 		pseudoRNG: rand.New(rand.NewSource(99)),
@@ -61,12 +59,6 @@ const (
 	// This is based off maxLabels * maxLabelLength, but is also a restriction based
 	// on the max size of indexed storage in the issuedNames table.
 	maxDNSIdentifierLength = 640
-
-	// whitelistedPartnerRegID is the registartion ID we check for to see if we need
-	// to skip the domain whitelist (but not the blacklist). This is for an
-	// early partner integration during the beta period and should be removed
-	// later.
-	whitelistedPartnerRegID = 131
 )
 
 var dnsLabelRegexp = regexp.MustCompile("^[a-z0-9][a-z0-9-]{0,62}$")
@@ -98,7 +90,6 @@ var (
 	errNonPublic           = core.MalformedRequestError("Name does not end in a public suffix")
 	errICANNTLD            = core.MalformedRequestError("Name is an ICANN TLD")
 	errBlacklisted         = core.MalformedRequestError("Name is blacklisted")
-	errNotWhitelisted      = core.MalformedRequestError("Name is not whitelisted")
 	errInvalidDNSCharacter = core.MalformedRequestError("Invalid character in DNS name")
 	errNameTooLong         = core.MalformedRequestError("DNS name too long")
 	errIPAddress           = core.MalformedRequestError("Issuance for IP addresses not supported")
@@ -187,17 +178,8 @@ func (pa PolicyAuthorityImpl) WillingToIssue(id core.AcmeIdentifier, regID int64
 		return errICANNTLD
 	}
 
-	// Use the domain whitelist if the PA has been asked to. However, if the
-	// registration ID is from a whitelisted partner we're allowing to register
-	// any domain, they can get in, too.
-	enforceWhitelist := pa.EnforceWhitelist
-	if regID == whitelistedPartnerRegID {
-		enforceWhitelist = false
-	}
-
-	// Require no match against blacklist and if enforceWhitelist is true
-	// require domain to match a whitelist rule.
-	if err := pa.DB.CheckHostLists(domain, enforceWhitelist); err != nil {
+	// Require no match against blacklist.
+	if err := pa.DB.CheckHostLists(domain); err != nil {
 		return err
 	}
 

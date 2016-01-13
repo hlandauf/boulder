@@ -39,27 +39,23 @@ func main() {
 			Name:   "rule-file",
 			Value:  "rules.json",
 			EnvVar: "BOULDER_POLICY_RULES",
-			Usage:  "Path to Boulder policy whitelist and blacklist rule file",
+			Usage:  "Path to Boulder policy blacklist rule file",
 		},
 	}
 
 	app.Commands = append(app.Commands, []cli.Command{
 		cli.Command{
 			Name:  "dump-rules",
-			Usage: "Write out whitelist and blacklist from database to a rule file",
+			Usage: "Write out blacklist from database to a rule file",
 			Action: func(c *cli.Context) {
 				padb, ruleFile := setupFromContext(c)
 				ruleSet, err := padb.DumpRules()
-				cmd.FailOnError(err, "Couldn't retrieve whitelist rules")
+				cmd.FailOnError(err, "Couldn't retrieve blacklist rules")
 				var rules struct {
 					Blacklist []string
-					Whitelist []string
 				}
 				for _, r := range ruleSet.Blacklist {
 					rules.Blacklist = append(rules.Blacklist, r.Host)
-				}
-				for _, r := range ruleSet.Whitelist {
-					rules.Whitelist = append(rules.Whitelist, r.Host)
 				}
 				rulesJSON, err := json.Marshal(rules)
 				cmd.FailOnError(err, "Couldn't marshal rule list")
@@ -70,7 +66,7 @@ func main() {
 		},
 		cli.Command{
 			Name:  "load-rules",
-			Usage: "Load whitelist and blacklist into database from a rule file",
+			Usage: "Load blacklist into database from a rule file",
 			Action: func(c *cli.Context) {
 				padb, ruleFile := setupFromContext(c)
 
@@ -85,16 +81,11 @@ func main() {
 						Host: strings.ToLower(r),
 					})
 				}
-				for _, r := range rules.Whitelist {
-					rs.Whitelist = append(rs.Whitelist, policy.WhitelistRule{
-						Host: strings.ToLower(r),
-					})
-				}
 
 				err = padb.LoadRules(rs)
 				cmd.FailOnError(err, "Couldn't load rules")
 
-				fmt.Println("# Loaded whitelist and blacklist into database")
+				fmt.Println("# Loaded blacklist into database")
 			},
 		},
 	}...)

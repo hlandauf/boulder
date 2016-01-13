@@ -312,8 +312,7 @@ type CAConfig struct {
 // it should offer.
 type PAConfig struct {
 	DBConfig
-	EnforcePolicyWhitelist bool
-	Challenges             map[string]bool
+	Challenges map[string]bool
 }
 
 // CheckChallenges checks whether the list of challenges in the PA config
