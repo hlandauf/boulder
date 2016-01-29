@@ -169,8 +169,9 @@ type Config struct {
 
 	Common struct {
 		BaseURL string
-		// Path to a PEM-encoded copy of the issuer certificate.
-		IssuerCert string
+
+		IssuerCert     string // Path to a PEM-encoded copy of the issuer certificate.
+		RootIssuerCert string // Optional. Path to a PEM-encoded copy of the root issuer certificate.
 
 		DNSResolver               string
 		DNSTimeout                string

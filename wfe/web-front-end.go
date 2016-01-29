@@ -39,6 +39,7 @@ const (
 	RevokeCertPath = "/acme/revoke-cert"
 	TermsPath      = "/terms"
 	IssuerPath     = "/acme/issuer-cert"
+	RootIssuerPath = "/acme/root-issuer-cert"
 	BuildIDPath    = "/build"
 )
 
@@ -66,8 +67,8 @@ type WebFrontEndImpl struct {
 	// JSON encoded endpoint directory
 	DirectoryJSON []byte
 
-	// Issuer certificate (DER) for /acme/issuer-cert
-	IssuerCert []byte
+	IssuerCert     []byte // Issuer certificate (DER) for /acme/issuer-cert
+	RootIssuerCert []byte // Root issuer certificate (DER) for /acme/root-issuer-cert
 
 	// URL to the current subscriber agreement (should contain some version identifier)
 	SubscriberAgreementURL string
@@ -212,6 +213,7 @@ func (wfe *WebFrontEndImpl) Handler() (http.Handler, error) {
 	wfe.HandleFunc(m, RevokeCertPath, wfe.RevokeCertificate, "POST")
 	wfe.HandleFunc(m, TermsPath, wfe.Terms, "GET")
 	wfe.HandleFunc(m, IssuerPath, wfe.Issuer, "GET")
+	wfe.HandleFunc(m, RootIssuerPath, wfe.RootIssuer, "GET")
 	wfe.HandleFunc(m, BuildIDPath, wfe.BuildID, "GET")
 	// We don't use our special HandleFunc for "/" because it matches everything,
 	// meaning we can wind up returning 405 when we mean to return 404. See
@@ -1142,8 +1144,32 @@ func (wfe *WebFrontEndImpl) Issuer(logEvent *requestEvent, response http.Respons
 	// TODO Content negotiation
 	response.Header().Set("Content-Type", "application/pkix-cert")
 	response.WriteHeader(http.StatusOK)
+
+	if len(wfe.RootIssuerCert) != 0 {
+		response.Header().Add("Link", link(wfe.BaseURL+RootIssuerPath, "up"))
+	}
+
 	if _, err := response.Write(wfe.IssuerCert); err != nil {
 		logEvent.AddError("unable to write issuer certificate response: %s", err)
+		wfe.log.Warning(fmt.Sprintf("Could not write response: %s", err))
+	}
+}
+
+// RootIssuer obtains the root issuer certificate used by this instance of Boulder.
+func (wfe *WebFrontEndImpl) RootIssuer(logEvent *requestEvent, response http.ResponseWriter, request *http.Request) {
+	addCacheHeader(response, wfe.IssuerCacheDuration.Seconds())
+
+	// No root issuer certificate configured.
+	if len(wfe.RootIssuerCert) == 0 {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// TODO Content negotiation
+	response.Header().Set("Content-Type", "application/pkix-cert")
+	response.WriteHeader(http.StatusOK)
+	if _, err := response.Write(wfe.RootIssuerCert); err != nil {
+		logEvent.AddError("unable to write root issuer certificate response: %s", err)
 		wfe.log.Warning(fmt.Sprintf("Could not write response: %s", err))
 	}
 }

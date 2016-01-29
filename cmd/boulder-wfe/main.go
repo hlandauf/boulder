@@ -79,6 +79,11 @@ func main() {
 		wfe.IssuerCert, err = cmd.LoadCert(c.Common.IssuerCert)
 		cmd.FailOnError(err, fmt.Sprintf("Couldn't read issuer cert [%s]", c.Common.IssuerCert))
 
+		if c.Common.RootIssuerCert != "" {
+			wfe.RootIssuerCert, err = cmd.LoadCert(c.Common.RootIssuerCert)
+			cmd.FailOnError(err, fmt.Sprintf("Couldn't read root issuer cert [%s]", c.Common.RootIssuerCert))
+		}
+
 		auditlogger.Info(fmt.Sprintf("WFE using key policy: %#v", c.KeyPolicy()))
 
 		go cmd.ProfileCmd("WFE", stats)
